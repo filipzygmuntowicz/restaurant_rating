@@ -109,5 +109,14 @@ def get_rating(restaurant_id):
                     restaurant.service, restaurant.earnings)
             }
         )
+        mean = (restaurant.taste + restaurant.size + restaurant.service) / 3
+        print(
+            {
+                "category": "mean",
+                "float": round(mean, 2),
+                "string": stars_out_of_rating_points(
+                    mean, restaurant.earnings)
+            }
+        )
     else:
         print("Restaurant not found.")
