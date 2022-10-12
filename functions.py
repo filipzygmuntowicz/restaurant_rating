@@ -1,4 +1,5 @@
-from orm_objects import Restaurant, Rating, db, app
+from orm_objects import Restaurant, Rating, db, app, RestaurantNotFoundInDB,\
+    RatingNotFoundInDB
 from datetime import datetime
 
 
@@ -39,20 +40,20 @@ def rate_restaurant(restaurant_id, bill_value, taste, size, service):
                 service = service - 2
                 restaurant = Restaurant.query.filter_by(
                     restaurant_id=restaurant_id).first()
-                if restaurant is not None:
-                    restaurant = update_ratings(
-                        restaurant, taste, size, service, bill_value)
-                    db.session.add(restaurant)
-                    db.session.commit()
-                    restaurant_id = restaurant.restaurant_id
-                    new_rating = Rating(
-                        restaurant_id=restaurant_id, bill_value=bill_value,
-                        taste=taste, size=size, service=service,
-                        date=datetime.now())
-                    db.session.add(new_rating)
-                    db.session.commit()
-                else:
-                    print("Restaurant not found in database.")
+                if restaurant is None:
+                    raise RestaurantNotFoundInDB(
+                        "Restaurant not found in database.")
+                restaurant = update_ratings(
+                    restaurant, taste, size, service, bill_value)
+                db.session.add(restaurant)
+                db.session.commit()
+                restaurant_id = restaurant.restaurant_id
+                new_rating = Rating(
+                    restaurant_id=restaurant_id, bill_value=bill_value,
+                    taste=taste, size=size, service=service,
+                    date=datetime.now())
+                db.session.add(new_rating)
+                db.session.commit()
     except ValueError:
         print("Provided rates are not numbers!")
 
@@ -61,19 +62,20 @@ def get_rating_history(restaurant_id):
     with app.app_context():
         ratings = Rating.query.filter_by(
             restaurant_id=restaurant_id).all()
-        if ratings is not None:
-            for rating in ratings:
-                print(
-                    {
-                        "taste": rating.taste + 2,
-                        "size": rating.size + 2,
-                        "service": rating.service + 2,
-                        "date": datetime.strftime(
-                            rating.date, "%Y-%m-%d %H:%M")
-                    }
-                )
-        else:
-            print("Rating history not found for a given restaurant.")
+        history = []
+        if ratings == []:
+            raise RatingNotFoundInDB("Rating not found in database.")
+        for rating in ratings:
+            history.append(
+                {
+                    "taste": rating.taste + 2,
+                    "size": rating.size + 2,
+                    "service": rating.service + 2,
+                    "date": datetime.strftime(
+                        rating.date, "%Y-%m-%d %H:%M")
+                }
+            )
+        return history
 
 
 def stars_out_of_rating_points(rating_points, earnings):
@@ -84,39 +86,33 @@ def get_rating(restaurant_id):
     with app.app_context():
         restaurant = Restaurant.query.filter_by(
             restaurant_id=restaurant_id).first()
-    if restaurant is not None:
-        print(
-            {
-                "category": "taste",
-                "float": round(restaurant.taste, 2),
-                "string": stars_out_of_rating_points(
-                    restaurant.taste, restaurant.earnings)
-            }
-        )
-        print(
-            {
-                "category": "size",
-                "float": round(restaurant.size, 2),
-                "string": stars_out_of_rating_points(
-                    restaurant.size, restaurant.earnings)
-            }
-        )
-        print(
-            {
-                "category": "service",
-                "float": round(restaurant.service, 2),
-                "string": stars_out_of_rating_points(
-                    restaurant.service, restaurant.earnings)
-            }
-        )
-        mean = (restaurant.taste + restaurant.size + restaurant.service) / 3
-        print(
-            {
-                "category": "mean",
-                "float": round(mean, 2),
-                "string": stars_out_of_rating_points(
-                    mean, restaurant.earnings)
-            }
-        )
-    else:
-        print("Restaurant not found.")
+    if restaurant is None:
+        raise RestaurantNotFoundInDB("Restaurant not found in database.")
+    taste = {
+            "category": "taste",
+            "float": round(restaurant.taste, 2),
+            "string": stars_out_of_rating_points(
+                restaurant.taste, restaurant.earnings)
+        }
+    size = {
+            "category": "size",
+            "float": round(restaurant.size, 2),
+            "string": stars_out_of_rating_points(
+                restaurant.size, restaurant.earnings)
+        }
+    service = {
+            "category": "service",
+            "float": round(restaurant.service, 2),
+            "string": stars_out_of_rating_points(
+                restaurant.service, restaurant.earnings)
+        }
+    mean_rating_points = (
+        restaurant.taste + restaurant.size + restaurant.service) / 3
+    mean = {
+            "category": "mean",
+            "float": round(mean_rating_points, 2),
+            "string": stars_out_of_rating_points(
+                mean_rating_points, restaurant.earnings)
+        }
+    return taste, size, service, mean
+        

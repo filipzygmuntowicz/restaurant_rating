@@ -18,3 +18,9 @@ Available functions:
   - `get_rating_history(restaurant_id)`
   - `get_rating(restaurant_id)`
   - `add_restaurant(restaurant_name)`
+
+Run the tests by using:
+
+```
+pytest test_unit.py -s
+```

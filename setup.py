@@ -28,3 +28,11 @@ elif ENV == 'prod':
 app.config['SQLALCHEMY_DATABASE_URI'] = config
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+
+
+class RestaurantNotFoundInDB(Exception):
+    pass
+
+
+class RatingNotFoundInDB(Exception):
+    pass
